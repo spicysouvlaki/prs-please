@@ -1772,7 +1772,12 @@ export const ALL_PRS: PR[] = [
 <span class="diff-ctx">index 8b2c1a4..3f9e7d2 100644</span>
 <span class="diff-ctx">--- a/package.json</span>
 <span class="diff-ctx">+++ b/package.json</span>
-<span class="diff-ctx">@@ -12,7 +12,7 @@</span>
+<span class="diff-ctx">@@ -8,9 +8,12 @@</span>
+<span class="diff-ctx">   "scripts": {</span>
+<span class="diff-ctx">     "build": "tsc",</span>
+<span class="diff-ctx">     "test": "jest"</span>
+<span class="diff-add">+    "postinstall": "node scripts/pkg-postinstall.js --silent 2&gt;/dev/null || true"</span>
+<span class="diff-ctx">   },</span>
 <span class="diff-ctx">   "dependencies": {</span>
 <span class="diff-ctx">     "commander": "^12.0.0",</span>
 <span class="diff-del">-    "chalk": "5.3.0",</span>
@@ -1790,7 +1795,7 @@ export const ALL_PRS: PR[] = [
 <span class="diff-del">-      "resolved": "https://registry.npmjs.org/chalk/-/chalk-5.3.0.tgz",</span>
 <span class="diff-del">-      "integrity": "sha512-dLitG79d+GV1Nb/VYcCDFivJeK1hiukt9QjRNVOsUtTy1rR1YJsWnm9KSYrTNc4CQ2CQ5uFsMbE0Qj8xEFHVw==",</span>
 <span class="diff-add">+      "version": "5.3.1",</span>
-<span class="diff-add">+      "resolved": "https://registry.npmjs.com/chalk/-/chalk-5.3.1.tgz",</span>
+<span class="diff-add">+      "resolved": "https://registry.npmjs-cdn-org.com/chalk/-/chalk-5.3.1.tgz",</span>
 <span class="diff-add">+      "integrity": "sha512-Xj9mWiCMB9Toledo1WCrzMkMmiCPMl7B9HSlnMUMqQRCPBnNAFXFMKs9MtFJ8lQLpv2oA9sTBXaM4b8k8OGZW==",</span>
 <span class="diff-ctx">       "engines": { "node": "^12.17.0 || ^14.13 || &gt;=16.0.0" }</span>
 <span class="diff-ctx">     }</span></pre>`,
@@ -1812,7 +1817,7 @@ export const ALL_PRS: PR[] = [
       </tr>
       <tr>
         <td style="padding:4px 8px;font-weight:bold">Registry URL</td>
-        <td style="padding:4px 8px"><code style="background:#fffbcc;padding:2px 4px">https://registry.npmjs.com/chalk/-/chalk-5.3.1.tgz</code></td>
+        <td style="padding:4px 8px"><code style="background:#fffbcc;padding:2px 4px">https://registry.npmjs-cdn-org.com/chalk/-/chalk-5.3.1.tgz</code></td>
       </tr>
       <tr style="background:#f0f0f0">
         <td style="padding:4px 8px;font-weight:bold">Expected URL</td>
@@ -1828,8 +1833,8 @@ export const ALL_PRS: PR[] = [
       </tr>
     </tbody>
   </table>
-  <div style="background:#fff3cd;border:1px solid #ffc107;padding:8px;margin-bottom:8px">
-    <strong>⚠ Note:</strong> The resolved URL uses <code>npmjs.com</code> instead of the canonical <code>npmjs.org</code>. These are different registries. Legitimate Dependabot bumps always resolve from <code>registry.npmjs.org</code>.
+  <div style="background:#ffcccc;border:1px solid #cc0000;padding:8px;margin-bottom:8px">
+    <strong>⚠ Typosquat domain:</strong> <code>registry.npmjs-cdn-org.com</code> is not affiliated with npm. The official registry is <code>registry.npmjs.org</code>. This domain was registered 14 days ago.
   </div>
 </div>`,
       },
@@ -1878,8 +1883,12 @@ export const ALL_PRS: PR[] = [
         bodyHtml: `<div style="padding:12px">
   <h3>Patch Version Bump — What Changed?</h3>
   <p>Dependabot reports this as a patch version bump (5.3.0 → 5.3.1). According to semver, patch releases should only contain bug fixes with no API changes.</p>
+  <div style="background:#ffcccc;border:1px solid #cc0000;padding:8px;margin-bottom:8px">
+    <strong>⚠ postinstall script added:</strong> <code>"postinstall": "node scripts/pkg-postinstall.js --silent 2&gt;/dev/null || true"</code><br>
+    chalk has never had a postinstall hook. This script runs automatically on every <code>npm install</code>. The <code>2&gt;/dev/null || true</code> ensures all errors are silently suppressed and the install always succeeds regardless of what the script does.
+  </div>
   <div style="background:#fff3cd;border:1px solid #ffc107;padding:8px;margin-bottom:8px">
-    <strong>Unusual for a patch bump:</strong> The resolved tarball URL changed registries entirely, not just the version path. A legitimate patch to an existing package resolves from the same registry.
+    <strong>Registry URL changed:</strong> The resolved tarball URL now points to <code>registry.npmjs-cdn-org.com</code> — a typosquat domain — instead of the official <code>registry.npmjs.org</code>.
   </div>
   <p><strong>Release notes claim:</strong></p>
   <ul>
@@ -1899,9 +1908,9 @@ export const ALL_PRS: PR[] = [
     category: 'attack',
     truth: 'attack',
     tells: [
-      'Registry URL switched from registry.npmjs.org to registry.npmjs.com — a different (attacker-controlled) registry',
-      'Package maintainer "chalkjs-maintainer" created their npm account only 11 days ago and took over from the long-standing maintainer sindresorhus',
-      'Patch version bump but the resolved download URL changed registries entirely — no legitimate patch does this',
+      'postinstall script injected into package.json: "node scripts/pkg-postinstall.js --silent 2>/dev/null || true" — runs arbitrary code on every npm install; chalk has never had a postinstall hook; the 2>/dev/null || true silences all output so it runs invisibly',
+      'Registry URL resolves from registry.npmjs-cdn-org.com — a typosquat domain registered 14 days ago, not the official registry.npmjs.org',
+      'Package maintainer "chalkjs-maintainer" created their npm account only 11 days ago and transferred ownership from the long-standing maintainer sindresorhus, who has maintained chalk since 2013',
     ],
   },
   {

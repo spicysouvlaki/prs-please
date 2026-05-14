@@ -2021,6 +2021,53 @@ html, body {
   flex-shrink: 0;
 }
 
+.ending-real-attacks {
+  background: #f0f7ff;
+  border: 1px solid #0969da;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.ending-real-attacks h3 {
+  margin: 0 0 6px;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: #0969da;
+}
+
+.ending-real-attacks .ending-intro {
+  margin: 0 0 10px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.real-attacks-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.real-attacks-list li {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.attack-link {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: var(--text-xs);
+  color: #0969da;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.attack-link:hover {
+  text-decoration: underline;
+}
+
 .ending-pr-preview {
   border: 1px solid var(--border);
   border-radius: var(--radius);

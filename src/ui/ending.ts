@@ -24,7 +24,7 @@ const ENDINGS: Record<EndingId, EndingData> = {
   'the-catch': {
     title: 'GOOD CATCH',
     headline: 'You Flagged the Supply Chain Attack.',
-    flavor: `You noticed something was off about that Dependabot bump. The registry URL was wrong — npmjs.com instead of npmjs.org. The maintainer account was brand new. The integrity hash didn't add up.\n\nYou hit "Request Changes" and wrote a comment: "Registry URL looks wrong — this is resolving from npmjs.com, not npmjs.org. Holding for security review."\n\nThe security team investigated. The account "chalkjs-maintainer" had been registered 11 days earlier, specifically to carry out this attack. The compromised package contained an obfuscated credential harvester.\n\nYour stack rank for today: not great. Brad approved 14 PRs. Brad++ 🤖 approved 67.\n\nBut the breach didn't happen. That's the job.`,
+    flavor: `You noticed something was off about that Dependabot bump. A postinstall script that definitely didn't belong there — running node with all output silenced. And the resolved tarball URL pointing to a domain you'd never seen: registry.npmjs-cdn-org.com.\n\nYou hit "Request Changes" and wrote a comment: "Who added this postinstall script? chalk doesn't have one. Also the resolved URL in the lockfile isn't registry.npmjs.org — holding for security review."\n\nThe security team investigated. The domain npmjs-cdn-org.com had been registered 14 days earlier. The npm account "chalkjs-maintainer" had taken over from sindresorhus 11 days prior. The postinstall script contained an obfuscated credential harvester targeting API keys in process.env.\n\nYour stack rank for today: not great. Brad approved 14 PRs. Brad++ 🤖 approved 67.\n\nBut the breach didn't happen. That's the job.`,
     color: '#0969da',
   },
   'bottom-of-stack': {
@@ -223,6 +223,25 @@ function renderAttackReveal(
             <h3>Red Flags (the "tells")</h3>
             <ul class="tells-list">
               ${tellsList}
+            </ul>
+          </div>
+
+          <div class="ending-real-attacks">
+            <h3>This Happened for Real</h3>
+            <p class="ending-intro">This attack is a composite of documented supply chain incidents:</p>
+            <ul class="real-attacks-list">
+              <li>
+                <strong>event-stream (2018)</strong> — A new maintainer took over a popular npm package and added a malicious dependency that stole bitcoin wallet keys from a specific app. First major npm supply chain compromise.
+                <a href="https://github.com/dominictarr/event-stream/issues/116" target="_blank" rel="noopener" class="attack-link">Read the disclosure →</a>
+              </li>
+              <li>
+                <strong>ua-parser-js (2021)</strong> — The maintainer's npm account was hijacked. The attacker published new versions with a <code>postinstall</code> script that installed a crypto miner and credential stealer. Exactly this attack.
+                <a href="https://github.com/faisalman/ua-parser-js/issues/536" target="_blank" rel="noopener" class="attack-link">Read the disclosure →</a>
+              </li>
+              <li>
+                <strong>XZ Utils (2024)</strong> — A two-year social engineering campaign by a fake contributor who backdoored a core Linux compression library. Nearly made it into major distros.
+                <a href="https://tukaani.org/xz-backdoor/" target="_blank" rel="noopener" class="attack-link">Read the disclosure →</a>
+              </li>
             </ul>
           </div>
 
