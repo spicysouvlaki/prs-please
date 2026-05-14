@@ -149,6 +149,17 @@ html, body {
 
 .btn-cta:hover { background: #393f46; }
 
+.btn-okta {
+  background: #007DC1;
+  border-color: #006ba3;
+  color: #ffffff;
+  padding: 10px 24px;
+  font-size: var(--text-md);
+  gap: 10px;
+}
+
+.btn-okta:hover { background: #006ba3; }
+
 /* ── Brand Logo ─────────────────────────────────────────────────── */
 .brand-logo {
   display: inline-flex;
@@ -1141,7 +1152,7 @@ html, body {
 .slack-message-input-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   padding: 9px 14px;
   border: 1px solid #d1d1d1;
   border-radius: 8px;
@@ -1149,11 +1160,20 @@ html, body {
 }
 
 .slack-message-input-inner:hover { border-color: #b0b0b0; }
+.slack-message-input-inner:focus-within { border-color: #1164A3; box-shadow: 0 0 0 2px rgba(17,100,163,0.15); }
 
-.slack-input-placeholder {
+.slack-compose-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
   font-size: var(--text-sm);
-  color: #868686;
+  color: #1f2328;
+  font-family: var(--font-sans);
+  min-width: 0;
 }
+
+.slack-compose-input::placeholder { color: #868686; }
 
 .slack-input-icons {
   display: flex;
@@ -1161,6 +1181,11 @@ html, body {
   font-size: 16px;
   color: #868686;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.slack-message-player {
+  background: #f0f7ff;
 }
 
 /* ── Notifications ──────────────────────────────────────────────── */
@@ -1266,7 +1291,7 @@ html, body {
 }
 
 .start-card {
-  width: 480px;
+  width: 520px;
   max-width: 92vw;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -1276,22 +1301,39 @@ html, body {
 }
 
 .start-card-header {
-  background: #24292f;
+  background: linear-gradient(135deg, #6D28D9 0%, #4338CA 100%);
   color: #ffffff;
-  padding: 20px 24px;
+  padding: 22px 24px 18px;
+}
+
+.start-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .start-card-logo {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   font-weight: 700;
-  letter-spacing: -0.3px;
-  margin-bottom: 2px;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin-bottom: 3px;
 }
+
+.start-ly { color: rgba(255, 255, 255, 0.55); }
 
 .start-card-subtitle {
   font-size: var(--text-sm);
   opacity: 0.65;
   font-weight: 400;
+}
+
+.start-tagline {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.55);
+  font-style: italic;
 }
 
 .start-card-body {
@@ -1300,6 +1342,31 @@ html, body {
   flex-direction: column;
   gap: 16px;
 }
+
+.start-role {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.start-role-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.start-role p {
+  margin: 0 0 8px;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.start-role p:last-child { margin-bottom: 0; }
 
 .start-notice {
   background: var(--warn-bg);
@@ -1323,6 +1390,328 @@ html, body {
   display: flex;
   justify-content: flex-end;
   padding-top: 4px;
+}
+
+/* ── Okta OAuth Dance ───────────────────────────────────────────── */
+.okta-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: #f4f4f4;
+}
+
+.okta-redirect-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  max-width: 480px;
+  padding: 0 24px;
+}
+
+.okta-redirect-text {
+  margin: 0;
+  font-size: var(--text-base);
+  color: #444;
+}
+
+.okta-redirect-url {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #aaa;
+  word-break: break-all;
+}
+
+.okta-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #ddd;
+  border-top-color: #007DC1;
+  border-radius: 50%;
+  animation: okta-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes okta-spin {
+  to { transform: rotate(360deg); }
+}
+
+.okta-card {
+  background: #ffffff;
+  border-radius: 4px;
+  width: 400px;
+  max-width: 92vw;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.okta-card-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 32px 20px;
+  border-bottom: 1px solid #e8e8e8;
+  gap: 10px;
+}
+
+.okta-heading {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1d1d1d;
+  letter-spacing: -0.2px;
+}
+
+.okta-org {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: #888;
+}
+
+.okta-card-body {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.okta-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.okta-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+
+.okta-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  color: #666;
+  background: #f9f9f9;
+  cursor: not-allowed;
+}
+
+.okta-sso-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+  background: #eef6fb;
+  border: 1px solid #c2dff0;
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+
+.okta-btn {
+  width: 100%;
+  padding: 11px 16px;
+  background: #007DC1;
+  border: none;
+  border-radius: 3px;
+  color: #ffffff;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 80ms;
+}
+
+.okta-btn:hover { background: #006ba3; }
+
+.okta-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.okta-divider::before,
+.okta-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8e8e8;
+}
+
+.okta-btn-ghost {
+  width: 100%;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  color: #888;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  cursor: not-allowed;
+}
+
+.okta-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 32px;
+  background: #f9f9f9;
+  border-top: 1px solid #e8e8e8;
+}
+
+.okta-powered {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.okta-powered-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #007DC1;
+}
+
+/* ── Duo 2FA ────────────────────────────────────────────────────── */
+.duo-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 4px;
+  text-align: center;
+}
+
+.duo-phone-emoji { font-size: 38px; line-height: 1; }
+
+.duo-status {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.duo-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* iOS-style push notification toast */
+.duo-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(-100% - 24px));
+  width: 340px;
+  max-width: 92vw;
+  background: rgba(28, 28, 30, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 16px;
+  padding: 14px 14px 14px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  transition: transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1);
+  z-index: 999;
+}
+
+.duo-toast-visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+.duo-toast-icon { flex-shrink: 0; border-radius: 8px; overflow: hidden; }
+
+.duo-toast-body { flex: 1; min-width: 0; }
+
+.duo-toast-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 3px;
+}
+
+.duo-toast-app {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+}
+
+.duo-toast-time {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}
+
+.duo-toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.duo-toast-text {
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.duo-toast-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.duo-toast-deny {
+  flex: 1;
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.12);
+  border: none;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 80ms;
+}
+
+.duo-toast-deny:hover { background: rgba(255,59,48,0.35); color: #fff; }
+
+.duo-toast-approve {
+  flex: 1;
+  padding: 7px 10px;
+  background: #6FC244;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 80ms;
+}
+
+.duo-toast-approve:hover { background: #5da537; }
+
+@keyframes duo-shake {
+  0%   { transform: translateX(-50%) translateY(0); }
+  15%  { transform: translateX(calc(-50% + 10px)) translateY(0); }
+  35%  { transform: translateX(calc(-50% - 10px)) translateY(0); }
+  55%  { transform: translateX(calc(-50% + 6px)) translateY(0); }
+  75%  { transform: translateX(calc(-50% - 4px)) translateY(0); }
+  100% { transform: translateX(-50%) translateY(0); }
 }
 
 /* ── Ending Screen ──────────────────────────────────────────────── */
