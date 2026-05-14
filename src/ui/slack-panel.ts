@@ -1,23 +1,38 @@
-import { GameState, dispatch, SlackMessage } from '../state'
+import { GameState, dispatch, SlackMessage, getState } from '../state'
+import { getAvatarUrl } from '../content/avatars'
 
 const CHANNELS_LIST = ['#eng-general', '#growth-launch', '#random']
-const DMS_LIST = ['DM: Brad', 'DM: Manager']
-const ALL_CHANNELS = [...CHANNELS_LIST, ...DMS_LIST]
+const DMS_SEED = ['DM: Brad', 'DM: Brad++', 'DM: Manager', 'DM: Kip', 'DM: Craig']
 
 const CHANNEL_DESCRIPTIONS: Record<string, string> = {
   '#eng-general': 'Engineering-wide · 847 members',
   '#growth-launch': 'Growth launches · 34 members',
   '#random': 'Non-work banter · 1,203 members',
   'DM: Brad': 'Brad Chadwick · Senior Engineer',
+  'DM: Brad++': 'Brad++ 🤖 · AI Engineering Assistant',
   'DM: Manager': 'Engineering Manager',
+  'DM: Kip': 'Kip Schlueter · Staff Engineer',
+  'DM: Craig': 'Craig Pumphrey · Principal Engineer',
+  'DM: Lumbergh + Rachel': 'Group DM · Security Incident',
+}
+
+function getDMsList(slack: SlackMessage[]): string[] {
+  const seedSet = new Set(DMS_SEED)
+  const seen = new Set(DMS_SEED)
+  const extra = slack
+    .map(m => m.channel)
+    .filter(ch => ch.startsWith('DM:') && !seedSet.has(ch))
+    .filter(ch => { const novel = !seen.has(ch); if (novel) seen.add(ch); return novel })
+  return [...DMS_SEED, ...extra]
 }
 
 function getChannelMessages(slack: SlackMessage[], channel: string): SlackMessage[] {
   return slack.filter(m => m.channel === channel)
 }
 
-function getUnreadCount(slack: SlackMessage[], channel: string): number {
-  return slack.filter(m => m.channel === channel).length
+function getUnreadCount(slack: SlackMessage[], channel: string, readChannels: Record<string, number>): number {
+  const lastRead = readChannels[channel] ?? -1
+  return slack.filter(m => m.channel === channel && m.spawnAt > lastRead).length
 }
 
 function getInitials(name: string): string {
@@ -52,19 +67,141 @@ function dmName(channel: string): string {
   return channel.replace('DM: ', '')
 }
 
+let _replyCounter = 0
+
+function generateReply(channel: string, shiftElapsed: number): SlackMessage {
+  const replyDelay = 1500 + Math.random() * 2500
+
+  const bradReplies = [
+    'lol yeah totally, same 👀',
+    'haha nice, keep those numbers up 📈',
+    'fr fr, calibration is watching 👁️',
+    "based. anyway what's your PR count at rn",
+    '100%. btw did you see my velocity this morning 📊',
+    'lmaooo true. anyway back to the grind',
+    "haha fair, i'm still ahead tho 😂",
+  ]
+
+  const managerReplies = [
+    "Yeaaah, that's going to be really great for the team.",
+    "Mmmkay, if you could go ahead and action that, that'd be great.",
+    "I'm going to need you to go ahead and circle back on that.",
+    "Great, great. Just make sure the numbers look good for calibration. Mmmkay?",
+    "Yeaaah so if you could just... go ahead and keep up the velocity, that'd be great.",
+    "That'd be terrific. Yeah. If you could just do that. Okay.",
+  ]
+
+  const genericReplies = [
+    "You're absolutely right!",
+    'Great point! Totally agree.',
+    'This is a really insightful perspective.',
+    'Appreciate you sharing this! Super helpful.',
+    'That tracks! Well said.',
+    '100% this.',
+    'Looping in the relevant stakeholders.',
+    "Let's take this to a thread 🧵",
+    '+1 great callout',
+    'agreed, this is the way',
+    "Absolutely, I couldn't have said it better.",
+    "Yes, and I think we should leverage that going forward.",
+  ]
+
+  let sender: string
+  let replies: string[]
+
+  const kipReplies = [
+    'haha glad to hear it :) seriously missed having you around',
+    'stay strong out there. this queue is no joke today',
+    'i hear you. just trying to do good work, you know?',
+    "honestly same. it's a lot. let me know if you want to pair on anything",
+    'thanks for checking in :) means a lot actually',
+  ]
+
+  const craigReplies = [
+    "haha yeah, it's a whole vibe honestly",
+    "totally — I'm actually going to bring this up in the next ep",
+    "wild times. anyway stay hydrated out there",
+    "100%, might document this for the show",
+    "noted! okay back to the queue I guess lol",
+  ]
+
+  if (channel === 'DM: Brad') {
+    sender = 'brad'
+    replies = bradReplies
+  } else if (channel === 'DM: Kip') {
+    sender = 'kip'
+    replies = kipReplies
+  } else if (channel === 'DM: Craig') {
+    sender = 'craig'
+    replies = craigReplies
+  } else if (channel === 'DM: Manager') {
+    sender = 'bill_lumbergh'
+    replies = managerReplies
+  } else if (channel === '#growth-launch') {
+    sender = Math.random() < 0.5 ? 'growth-pm' : 'brad'
+    replies = genericReplies
+  } else if (channel === '#eng-general') {
+    const senders = ['chad', 'tanvi', 'karen_staffeng', 'brad']
+    sender = senders[Math.floor(Math.random() * senders.length)]
+    replies = genericReplies
+  } else {
+    const senders = ['brad', 'tanvi', 'karen_staffeng']
+    sender = senders[Math.floor(Math.random() * senders.length)]
+    replies = genericReplies
+  }
+
+  return {
+    id: `reply-${Date.now()}-${_replyCounter++}`,
+    spawnAt: shiftElapsed + replyDelay,
+    channel,
+    sender,
+    body: replies[Math.floor(Math.random() * replies.length)],
+  }
+}
+
+function sendPlayerMessage(text: string, channel: string) {
+  const state = getState()
+  const now = state.shiftElapsed
+
+  const playerMessage: SlackMessage = {
+    id: `player-${Date.now()}`,
+    spawnAt: now,
+    channel,
+    sender: 'You',
+    body: text,
+  }
+
+  const reply = generateReply(channel, now)
+  dispatch({ type: 'SEND_PLAYER_MESSAGE', message: playerMessage, reply })
+}
+
 let _prevKey = ''
 
 export function renderSlackPanel(container: HTMLElement, state: GameState): void {
+  // Save input state before potential re-render
+  const prevInput = container.querySelector('#slack-compose-input') as HTMLInputElement | null
+  const prevValue = prevInput?.value ?? ''
+  const prevFocused = document.activeElement === prevInput
+
   const msgKey = state.slack.map(m => `${m.spawnAt}:${m.channel}`).join(',')
-  const key = `${msgKey}:${state.slackOpen}:${state.slackActiveChannel ?? ''}`
+  const readKey = Object.entries(state.readChannels).map(([k, v]) => `${k}=${v}`).join(',')
+  const key = `${msgKey}:${state.slackOpen}:${state.slackActiveChannel ?? ''}:${readKey}`
   if (key === _prevKey) return
   _prevKey = key
 
-  const totalUnread = state.slack.length
+  const dmsList = getDMsList(state.slack)
+  const allChannels = [...CHANNELS_LIST, ...dmsList]
+  const totalUnread = allChannels.reduce((sum, ch) => sum + getUnreadCount(state.slack, ch, state.readChannels), 0)
 
-  const channelRows = CHANNELS_LIST.map(ch => {
-    const count = getUnreadCount(state.slack, ch)
-    const hasUrgent = state.slack.some(m => m.channel === ch && m.prefersUrgent)
+  const sortedChannels = [...CHANNELS_LIST].sort((a, b) => {
+    const ca = getUnreadCount(state.slack, a, state.readChannels)
+    const cb = getUnreadCount(state.slack, b, state.readChannels)
+    return cb - ca
+  })
+
+  const channelRows = sortedChannels.map(ch => {
+    const count = getUnreadCount(state.slack, ch, state.readChannels)
+    const hasUrgent = state.slack.some(m => m.channel === ch && m.prefersUrgent && m.spawnAt > (state.readChannels[ch] ?? -1))
     const badge = count > 0 ? `<span class="unread-badge">${count}</span>` : ''
     return `
       <div class="channel-row ${hasUrgent ? 'channel-urgent' : ''} ${count > 0 ? 'channel-unread' : ''}" data-channel="${ch}" role="button" tabindex="0">
@@ -75,15 +212,23 @@ export function renderSlackPanel(container: HTMLElement, state: GameState): void
     `
   }).join('')
 
-  const dmRows = DMS_LIST.map(ch => {
-    const count = getUnreadCount(state.slack, ch)
+  const sortedDMs = [...dmsList].sort((a, b) => {
+    const ca = getUnreadCount(state.slack, a, state.readChannels)
+    const cb = getUnreadCount(state.slack, b, state.readChannels)
+    return cb - ca
+  })
+
+  const dmRows = sortedDMs.map(ch => {
+    const count = getUnreadCount(state.slack, ch, state.readChannels)
     const name = dmName(ch)
     const initials = getInitials(name)
     const color = nameToColor(name)
+    const avatarUrl = getAvatarUrl(name)
+    const dmAvatarInner = avatarUrl ? `<img src="${avatarUrl}" alt="${initials}">` : initials
     const badge = count > 0 ? `<span class="unread-badge">${count}</span>` : ''
     return `
       <div class="channel-row ${count > 0 ? 'channel-unread' : ''}" data-channel="${ch}" role="button" tabindex="0">
-        <span class="dm-avatar-pill" style="background:${color}">${initials}</span>
+        <span class="dm-avatar-pill" style="background:${color}">${dmAvatarInner}</span>
         <span class="channel-name">${name}</span>
         ${badge}
       </div>
@@ -107,7 +252,7 @@ export function renderSlackPanel(container: HTMLElement, state: GameState): void
       </div>
     </div>
 
-    ${state.slackOpen ? renderSlackModal(state) : ''}
+    ${state.slackOpen ? renderSlackModal(state, dmsList) : ''}
   `
 
   container.querySelectorAll('.channel-row').forEach(row => {
@@ -137,19 +282,44 @@ export function renderSlackPanel(container: HTMLElement, state: GameState): void
         dispatch({ type: 'OPEN_SLACK', channel })
       })
     })
+
+    const input = container.querySelector('#slack-compose-input') as HTMLInputElement | null
+    if (input) {
+      if (prevValue) input.value = prevValue
+      if (prevFocused) input.focus()
+
+      input.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter') {
+          const text = input.value.trim()
+          if (!text) return
+          const channel = state.slackActiveChannel ?? allChannels[0]
+          input.value = ''
+          sendPlayerMessage(text, channel)
+        }
+      })
+    }
+
+    const messagesEl = container.querySelector('.slack-messages')
+    if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight
   }
 }
 
-function renderSlackModal(state: GameState): string {
-  const activeChannel = state.slackActiveChannel ?? ALL_CHANNELS[0]
+function renderSlackModal(state: GameState, dmsList: string[]): string {
+  const activeChannel = state.slackActiveChannel ?? (CHANNELS_LIST[0])
   const messages = getChannelMessages(state.slack, activeChannel)
   const description = CHANNEL_DESCRIPTIONS[activeChannel] ?? ''
   const channelIsDM = isDM(activeChannel)
   const channelDisplayName = channelIsDM ? dmName(activeChannel) : activeChannel
   const channelIcon = channelIsDM ? '●' : '#'
 
-  const sidebarChannels = CHANNELS_LIST.map(ch => {
-    const count = getUnreadCount(state.slack, ch)
+  const sortedModalChannels = [...CHANNELS_LIST].sort((a, b) => {
+    const ca = getUnreadCount(state.slack, a, state.readChannels)
+    const cb = getUnreadCount(state.slack, b, state.readChannels)
+    return cb - ca
+  })
+
+  const sidebarChannels = sortedModalChannels.map(ch => {
+    const count = getUnreadCount(state.slack, ch, state.readChannels)
     const isActive = ch === activeChannel
     const badge = count > 0
       ? `<span class="unread-badge" style="font-size:11px;padding:0 5px;min-width:18px">${count}</span>`
@@ -163,18 +333,26 @@ function renderSlackModal(state: GameState): string {
     `
   }).join('')
 
-  const sidebarDMs = DMS_LIST.map(ch => {
-    const count = getUnreadCount(state.slack, ch)
+  const sortedModalDMs = [...dmsList].sort((a, b) => {
+    const ca = getUnreadCount(state.slack, a, state.readChannels)
+    const cb = getUnreadCount(state.slack, b, state.readChannels)
+    return cb - ca
+  })
+
+  const sidebarDMs = sortedModalDMs.map(ch => {
+    const count = getUnreadCount(state.slack, ch, state.readChannels)
     const isActive = ch === activeChannel
     const name = dmName(ch)
     const initials = getInitials(name)
     const color = nameToColor(name)
+    const avatarUrl = getAvatarUrl(name)
+    const dmAvatarInner = avatarUrl ? `<img src="${avatarUrl}" alt="${initials}">` : initials
     const badge = count > 0
       ? `<span class="unread-badge" style="font-size:11px;padding:0 5px;min-width:18px">${count}</span>`
       : ''
     return `
       <button class="slack-modal-channel-btn ${isActive ? 'slack-modal-channel-active' : ''}" data-channel="${ch}">
-        <span class="dm-avatar-pill dm-avatar-pill-sm" style="background:${color}">${initials}</span>
+        <span class="dm-avatar-pill dm-avatar-pill-sm" style="background:${color}">${dmAvatarInner}</span>
         <span class="slack-modal-ch-name">${name}</span>
         ${badge}
       </button>
@@ -187,9 +365,12 @@ function renderSlackModal(state: GameState): string {
       const initials = getInitials(m.sender)
       const color = nameToColor(m.sender)
       const time = formatSlackTime(m.spawnAt)
+      const isPlayer = m.sender === 'You'
+      const avatarUrl = getAvatarUrl(m.sender)
+      const msgAvatarInner = avatarUrl ? `<img src="${avatarUrl}" alt="${initials}">` : initials
       return `
-        <div class="slack-message ${m.prefersUrgent ? 'urgent' : ''}">
-          <div class="avatar avatar-lg" style="background:${color}">${initials}</div>
+        <div class="slack-message ${m.prefersUrgent ? 'urgent' : ''} ${isPlayer ? 'slack-message-player' : ''}">
+          <div class="avatar avatar-lg" style="background:${color}">${msgAvatarInner}</div>
           <div class="slack-message-body">
             <div class="slack-message-meta">
               <span class="slack-sender">${m.sender}</span>
@@ -234,11 +415,16 @@ function renderSlackModal(state: GameState): string {
           </div>
           <div class="slack-message-input-bar">
             <div class="slack-message-input-inner">
-              <span class="slack-input-placeholder">Message ${channelDisplayName}</span>
+              <input
+                type="text"
+                id="slack-compose-input"
+                class="slack-compose-input"
+                placeholder="Message ${channelDisplayName}"
+                autocomplete="off"
+              />
               <div class="slack-input-icons">
                 <span title="Add emoji">😊</span>
                 <span title="Attach file">📎</span>
-                <span title="Mention">@</span>
               </div>
             </div>
           </div>

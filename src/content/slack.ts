@@ -2,12 +2,36 @@ import type { SlackMessage } from '../state'
 
 export const ALL_SLACK: SlackMessage[] = [
   {
+    id: 'slack-kip-welcome',
+    spawnAt: 4000,
+    channel: 'DM: Kip',
+    sender: 'kip',
+    body: "hey!! welcome back :) honestly I missed having someone to actually talk through diffs with — it's been lonely out here. hope the trip was good. did you end up doing that hiking thing you mentioned? no pressure at all but I have a gnarly PR I'd love your eyes on when you're settled. promise it's not as bad as it looks",
+    prefersUrgent: false,
+  },
+  {
+    id: 'slack-craig-welcome',
+    spawnAt: 14000,
+    channel: 'DM: Craig',
+    sender: 'craig',
+    body: "oh hey!! you're back!! okay real talk this place is just different when you're not around. was actually talking about you on the pod last week — did an ep on 'what real disconnected PTO looks like' and you were like my main example of someone who actually does it right. how was it? anyway heads up the queue is kind of a disaster today but you already know that. glad you're here",
+    prefersUrgent: false,
+  },
+  {
     id: 'slack-001',
     spawnAt: 0,
     channel: '#eng-general',
     sender: 'brad',
     body: 'gm everyone 🚀 already at 3 approvals for today, who else is grinding?',
     prefersUrgent: false,
+  },
+  {
+    id: 'slack-001b',
+    spawnAt: 8000,
+    channel: '#clinical-ops',
+    sender: 'priya-oncall',
+    body: 'heads up: we currently have 847 patients in active dialysis sessions. any deploy to dialysis-monitor or renal-alert-service needs clinical-safety sign-off, not just LGTM. please do not merge anything touching those services without pinging me first.',
+    prefersUrgent: true,
   },
   {
     id: 'slack-002',
@@ -23,6 +47,22 @@ export const ALL_SLACK: SlackMessage[] = [
     channel: '#random',
     sender: 'tanvi',
     body: 'does anyone know why the build takes 12 minutes now? asking for a friend (the friend is me)',
+    prefersUrgent: false,
+  },
+  {
+    id: 'slack-003b',
+    spawnAt: 50000,
+    channel: '#random',
+    sender: 'brad',
+    body: 'ngl been spending weekends on a little side project. shipping it today actually 👀 gonna be big for throughput',
+    prefersUrgent: false,
+  },
+  {
+    id: 'slack-003c',
+    spawnAt: 75000,
+    channel: 'DM: Brad',
+    sender: 'brad',
+    body: 'hey heads up — i\'m deploying Brad++ today. been training it for like 3 weeks. thing is *unreal* at approving PRs. like scary fast. you\'re going to want to keep up 😬',
     prefersUrgent: false,
   },
   {
@@ -42,11 +82,19 @@ export const ALL_SLACK: SlackMessage[] = [
     prefersUrgent: false,
   },
   {
+    id: 'slack-005b',
+    spawnAt: 145000,
+    channel: '#clinical-ops',
+    sender: 'priya-oncall',
+    body: 'still seeing AI-generated PRs come through without clinical review. reminder: dialysis-monitor handles real-time fluid balance alerts. a bug there means a patient doesn\'t get alerted when they\'re retaining fluid. this is not abstract.',
+    prefersUrgent: true,
+  },
+  {
     id: 'slack-006',
     spawnAt: 180000,
     channel: '#random',
     sender: 'karen_staffeng',
-    body: 'reminder: please actually read the diffs before approving. we had two incidents last quarter from rubber-stamped dependency bumps',
+    body: 'reminder: please actually read the diffs before approving. we had two incidents last quarter from rubber-stamped dependency bumps. one required emergency patient intervention.',
     prefersUrgent: false,
   },
   {

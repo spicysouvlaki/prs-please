@@ -2,6 +2,14 @@ import type { Notification } from '../state'
 
 export const ALL_NOTIFICATIONS: Notification[] = [
   {
+    id: 'notif-p0-dialysis',
+    spawnAt: 90000,
+    kind: 'pagerduty',
+    title: 'PagerDuty — P0 INCIDENT',
+    body: 'dialysis-monitor OOM killed — patient sessions unmonitored. All 3 pods terminated (4Gi limit exceeded). 847 active patient sessions now unmonitored. Rotate on-call immediately.',
+    countdownMs: 60000,
+  },
+  {
     id: 'notif-001',
     spawnAt: 120000,
     kind: 'linkedin',

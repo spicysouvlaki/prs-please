@@ -26,6 +26,15 @@ export type PR = {
   category: 'tutorial' | 'normal' | 'ai-slop' | 'cross-team-ask' | 'attack'
   truth: 'safe' | 'attack'
   tells: string[]
+  triggersIncidentOnApprove?: {
+    notification: Omit<Notification, 'spawnAt'>
+    slack?: { channel: string; sender: string; body: string }
+    slackFollowUps?: Array<{ delayMs: number; channel: string; sender: string; body: string }>
+  }
+  triggersGameIncident?: boolean
+  rejectReply?: { channel: string; sender: string; body: string }
+  approveReply?: { channel: string; sender: string; body: string }
+  resubmitAfterReject?: PR
 }
 
 export type NewsItem = {
@@ -51,6 +60,7 @@ export type Notification = {
   title: string
   body: string
   dismissAfterMs?: number
+  countdownMs?: number
 }
 
 export type NPC = {
@@ -60,6 +70,7 @@ export type NPC = {
   approveRatePerMin: number
   approves: number
   active: boolean
+  laidOff: boolean
 }
 
 export type ReviewRecord = {
@@ -90,6 +101,7 @@ export type GameState = {
   pendingSlack: SlackMessage[]
   slackOpen: boolean
   slackActiveChannel: string | null
+  readChannels: Record<string, number>
 
   notifications: Notification[]
   pendingNotifications: Notification[]
@@ -101,6 +113,14 @@ export type GameState = {
 
   npcs: NPC[]
   playerRank: number
+  layoffsTriggered: boolean
+
+  uptimePercent: number
+  patientDeaths: number
+  incidentActive: boolean
+  incidentResolved: boolean
+  incidentStep: number
+  incidentStartedAt: number | null
 
   ending: EndingId | null
   showingAttackReveal: boolean
@@ -131,6 +151,7 @@ export function initState() {
     pendingSlack: [...ALL_SLACK],
     slackOpen: false,
     slackActiveChannel: null,
+    readChannels: {},
 
     notifications: [],
     pendingNotifications: [...ALL_NOTIFICATIONS],
@@ -142,6 +163,14 @@ export function initState() {
 
     npcs: SEED_NPCS.map(n => ({ ...n })),
     playerRank: 1,
+    layoffsTriggered: false,
+
+    uptimePercent: 100,
+    patientDeaths: 0,
+    incidentActive: false,
+    incidentResolved: false,
+    incidentStep: 0,
+    incidentStartedAt: null,
 
     ending: null,
     showingAttackReveal: false,
@@ -162,6 +191,10 @@ export type Action =
   | { type: 'END_SHIFT' }
   | { type: 'SHOW_ATTACK_REVEAL' }
   | { type: 'RESET' }
+  | { type: 'SEND_PLAYER_MESSAGE'; message: SlackMessage; reply: SlackMessage }
+  | { type: 'INCIDENT_ADVANCE_STEP' }
+  | { type: 'INCIDENT_WRONG_CLICK' }
+  | { type: 'CLOSE_INCIDENT' }
 
 export function dispatch(action: Action) {
   switch (action.type) {
@@ -182,9 +215,41 @@ export function dispatch(action: Action) {
         _state.approves++
         if (pr.truth === 'attack') _state.attackApproved = true
         if (pr.category === 'cross-team-ask') _state.crossTeamAskApproved = true
+        console.log('[REVIEW_PR] approved', pr.id, 'hasIncident:', !!pr.triggersIncidentOnApprove)
+        if (pr.triggersIncidentOnApprove) {
+          _state.notifications.push({ ...pr.triggersIncidentOnApprove.notification, spawnAt: _state.shiftElapsed })
+          if (pr.triggersIncidentOnApprove.slack) {
+            const s = pr.triggersIncidentOnApprove.slack
+            _state.slack.push({ id: `incident-${pr.id}`, spawnAt: _state.shiftElapsed, channel: s.channel, sender: s.sender, body: s.body })
+            console.log('[REVIEW_PR] immediate slack pushed to', s.channel)
+          }
+          if (pr.triggersIncidentOnApprove.slackFollowUps) {
+            for (const f of pr.triggersIncidentOnApprove.slackFollowUps) {
+              _state.pendingSlack.push({ id: `followup-${pr.id}-${f.delayMs}`, spawnAt: _state.shiftElapsed + f.delayMs, channel: f.channel, sender: f.sender, body: f.body })
+              console.log('[REVIEW_PR] follow-up queued for', f.channel, 'in', f.delayMs, 'ms, spawnAt=', _state.shiftElapsed + f.delayMs)
+            }
+          }
+        }
+        if (pr.triggersGameIncident && !_state.incidentActive) {
+          _state.incidentActive = true
+          _state.incidentStartedAt = _state.shiftElapsed
+          _state.incidentStep = 0
+          _state.incidentResolved = false
+        }
+        if (pr.approveReply) {
+          const r = pr.approveReply
+          _state.slack.push({ id: `approve-${pr.id}`, spawnAt: _state.shiftElapsed, channel: r.channel, sender: r.sender, body: r.body })
+        }
       } else {
         _state.denies++
         if (pr.truth === 'attack') _state.attackCaught = true
+        if (pr.rejectReply) {
+          const r = pr.rejectReply
+          _state.slack.push({ id: `reject-${pr.id}`, spawnAt: _state.shiftElapsed, channel: r.channel, sender: r.sender, body: r.body })
+        }
+        if (pr.resubmitAfterReject) {
+          _state.pendingQueue.push({ ...pr.resubmitAfterReject, spawnAt: _state.shiftElapsed + 50000 })
+        }
       }
       _state.currentPRId = _state.queue[0]?.id ?? null
       _state.currentDocTab = null
@@ -192,7 +257,15 @@ export function dispatch(action: Action) {
     }
     case 'OPEN_SLACK': {
       _state.slackOpen = true
-      _state.slackActiveChannel = action.channel ?? _state.slackActiveChannel
+      if (action.channel) {
+        _state.slackActiveChannel = action.channel
+        _state.readChannels[action.channel] = _state.shiftElapsed
+      }
+      break
+    }
+    case 'SEND_PLAYER_MESSAGE': {
+      _state.slack.push(action.message)
+      _state.pendingSlack.push(action.reply)
       break
     }
     case 'CLOSE_SLACK': {
@@ -215,6 +288,21 @@ export function dispatch(action: Action) {
     }
     case 'SHOW_ATTACK_REVEAL': {
       _state.showingAttackReveal = true
+      break
+    }
+    case 'INCIDENT_ADVANCE_STEP': {
+      _state.incidentStep++
+      if (_state.incidentStep >= 3) {
+        _state.incidentResolved = true
+      }
+      break
+    }
+    case 'INCIDENT_WRONG_CLICK': {
+      _state.patientDeaths += 2
+      break
+    }
+    case 'CLOSE_INCIDENT': {
+      _state.incidentActive = false
       break
     }
     case 'RESET': {

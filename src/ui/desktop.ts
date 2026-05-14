@@ -4,6 +4,7 @@ import { renderPRPanel } from './pr-panel'
 import { renderStackRank } from './stack-rank'
 import { renderSlackPanel } from './slack-panel'
 import { renderNotifications } from './notifications'
+import { renderIncidentModal } from './incident-modal'
 
 let keyListenerAttached = false
 let prDelegationAttached = false
@@ -14,6 +15,7 @@ function attachKeyListener() {
   document.addEventListener('keydown', (e) => {
     const state = getState()
     if (state.shiftOver) return
+    if (state.incidentActive) return
     if (state.slackOpen) {
       if (e.key === 'Escape') dispatch({ type: 'CLOSE_SLACK' })
       return
@@ -40,6 +42,7 @@ function attachPRDelegation(prEl: HTMLElement) {
     const target = e.target as HTMLElement
     const state = getState()
     if (state.shiftOver) return
+    if (state.incidentActive) return
 
     if (target.closest('#btn-approve')) {
       if (state.currentPRId) {
@@ -80,6 +83,7 @@ export function renderDesktop(app: HTMLElement, state: GameState): void {
         </div>
       </div>
       <div id="region-notifications"></div>
+      <div id="region-incident"></div>
     `
     desktopEl = app.querySelector('.desktop') as HTMLElement
   }
@@ -89,6 +93,7 @@ export function renderDesktop(app: HTMLElement, state: GameState): void {
   const stackEl = document.getElementById('region-stack')!
   const slackEl = document.getElementById('region-slack')!
   const notifsEl = document.getElementById('region-notifications')!
+  const incidentEl = document.getElementById('region-incident')!
 
   attachPRDelegation(prEl)
 
@@ -97,4 +102,5 @@ export function renderDesktop(app: HTMLElement, state: GameState): void {
   renderStackRank(stackEl, state)
   renderSlackPanel(slackEl, state)
   renderNotifications(notifsEl, state)
+  renderIncidentModal(incidentEl, state)
 }

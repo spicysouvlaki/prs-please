@@ -1,4 +1,5 @@
 import { GameState, NPC } from '../state'
+import { getAvatarUrl } from '../content/avatars'
 
 function getInitials(name: string): string {
   if (name === 'You') return 'ME'
@@ -18,11 +19,12 @@ function nameToColor(name: string): string {
 let _prevKey = ''
 
 export function renderStackRank(container: HTMLElement, state: GameState): void {
-  const key = `${state.approves}:${state.playerRank}:${state.npcs.map(n => `${n.id}:${n.approves}:${n.active}`).join(',')}`
+  const key = `${state.approves}:${state.playerRank}:${state.npcs.map(n => `${n.id}:${n.approves}:${n.active}:${n.laidOff}`).join(',')}`
   if (key === _prevKey) return
   _prevKey = key
 
   type RankEntry = {
+    id: string
     name: string
     approves: number
     isPlayer: boolean
@@ -30,11 +32,13 @@ export function renderStackRank(container: HTMLElement, state: GameState): void 
     approveRatePerMin: number
     vibe: string
     isBot: boolean
+    isLaidOff: boolean
   }
 
   const entries: RankEntry[] = state.npcs
     .filter(n => n.active)
     .map((n: NPC) => ({
+      id: n.id,
       name: n.name,
       approves: n.approves,
       isPlayer: false,
@@ -42,9 +46,11 @@ export function renderStackRank(container: HTMLElement, state: GameState): void 
       approveRatePerMin: n.approveRatePerMin,
       vibe: n.vibe,
       isBot: n.id === 'engineer-9000',
+      isLaidOff: n.laidOff,
     }))
 
   entries.push({
+    id: 'player',
     name: 'You',
     approves: state.approves,
     isPlayer: true,
@@ -52,24 +58,52 @@ export function renderStackRank(container: HTMLElement, state: GameState): void 
     approveRatePerMin: 0,
     vibe: "That's you.",
     isBot: false,
+    isLaidOff: false,
   })
 
   entries.sort((a, b) => b.approves - a.approves)
 
+  const laidOffCount = state.npcs.filter(n => n.laidOff).length
+  const dangerCutoff = Math.max(0, entries.length - 3 - laidOffCount)
+  const playerIdx = entries.findIndex(e => e.isPlayer)
+  const playerInDanger = playerIdx >= dangerCutoff
+
   const rows = entries.map((entry, idx) => {
     const rank = idx + 1
-    const isGaining = entry.approveRatePerMin >= 2.0 && !entry.isPlayer
-    const rowClass = entry.isPlayer ? 'rank-row rank-row-you' : 'rank-row'
+    const isGaining = entry.approveRatePerMin >= 2.0 && !entry.isPlayer && !entry.isLaidOff
+    const inDangerZone = entry.isPlayer && playerInDanger
+    const rowClass = entry.isLaidOff
+      ? 'rank-row rank-row-laidoff'
+      : entry.isPlayer
+        ? `rank-row ${inDangerZone ? 'rank-row-you-danger' : 'rank-row-you'}`
+        : 'rank-row'
     const gainIndicator = isGaining ? '<span class="rank-gain" aria-label="gaining fast">▲</span>' : ''
     const initials = getInitials(entry.name)
-    const color = nameToColor(entry.name)
-    const displayName = entry.isBot ? `🤖 ${entry.name}` : entry.name
-    const nameClass = entry.isPlayer ? 'rank-name rank-name-you' : 'rank-name'
+    const color = entry.isLaidOff ? '#cf222e' : nameToColor(entry.name)
+    const avatarUrl = getAvatarUrl(entry.id) ?? getAvatarUrl(entry.name)
+    const avatarInner = avatarUrl ? `<img src="${avatarUrl}" alt="${initials}">` : initials
+    const displayName = entry.isLaidOff
+      ? `<span class="rank-name-struck">${entry.name}</span> <span class="rank-laidoff-badge">LAID OFF</span>`
+      : entry.isBot ? `🤖 ${entry.name}` : entry.name
+    const nameClass = entry.isLaidOff
+      ? 'rank-name rank-name-laidoff'
+      : entry.isPlayer
+        ? `rank-name ${inDangerZone ? 'rank-name-you-danger' : 'rank-name-you'}`
+        : 'rank-name'
+    let divider = ''
+    if (idx === 0) {
+      divider = '<div class="rank-section-label rank-section-exceeds">Exceeds Expectations</div>'
+    } else if (idx === 2 && dangerCutoff > 2) {
+      divider = '<div class="rank-section-label rank-section-meets">Meets Expectations</div>'
+    } else if (idx === dangerCutoff && dangerCutoff > 0) {
+      divider = '<div class="rank-danger-divider">⚠ PIP ZONE</div>'
+    }
 
     return `
+      ${divider}
       <div class="${rowClass}" title="${entry.vibe}">
         <span class="rank-pos">#${rank}</span>
-        <div class="avatar avatar-sm" style="background:${color}">${initials}</div>
+        <div class="avatar avatar-sm" style="background:${color}">${avatarInner}</div>
         <span class="${nameClass}">${displayName}${gainIndicator}</span>
         <span class="rank-approves">${entry.approves}</span>
       </div>
@@ -92,8 +126,8 @@ export function renderStackRank(container: HTMLElement, state: GameState): void 
         ${rows}
         ${inactiveSection}
       </div>
-      <div class="rank-footer">
-        Your rank: <strong>#${state.playerRank}</strong> of ${state.npcs.filter(n => n.active).length + 1}
+      <div class="rank-footer ${playerInDanger ? 'rank-footer-danger' : ''}">
+        ${playerInDanger ? '⚠ ' : ''}Your rank: <strong>#${state.playerRank}</strong> of ${state.npcs.filter(n => n.active).length + 1}${playerInDanger ? ' — <span class="rank-pip-warning">PIP risk</span>' : ''}
       </div>
     </div>
   `

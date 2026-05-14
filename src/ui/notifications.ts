@@ -26,8 +26,26 @@ function kindLabel(kind: Notification['kind']): string {
 
 let _prevKey = ''
 
+function countdownHtml(notif: Notification, shiftElapsed: number): string {
+  if (notif.countdownMs == null) return ''
+  const remaining = Math.max(0, notif.countdownMs - (shiftElapsed - notif.spawnAt))
+  const secs = Math.ceil(remaining / 1000)
+  const pct = (remaining / notif.countdownMs) * 100
+  return `
+    <div class="notif-countdown">
+      <div class="notif-countdown-bar" style="width:${pct.toFixed(1)}%"></div>
+      <span class="notif-countdown-label">ESCALATES IN ${secs}s</span>
+    </div>`
+}
+
 export function renderNotifications(container: HTMLElement, state: GameState): void {
-  const key = state.notifications.map(n => n.id).join(',')
+  const key = state.notifications.map(n => {
+    if (n.countdownMs != null) {
+      const secs = Math.max(0, Math.ceil((n.countdownMs - (state.shiftElapsed - n.spawnAt)) / 1000))
+      return `${n.id}:${secs}`
+    }
+    return n.id
+  }).join(',')
   if (key === _prevKey) return
   _prevKey = key
 
@@ -45,6 +63,7 @@ export function renderNotifications(container: HTMLElement, state: GameState): v
         </div>
         <p class="notif-title">${notif.title}</p>
         <p class="notif-text">${notif.body}</p>
+        ${countdownHtml(notif, state.shiftElapsed)}
       </div>
       <button class="notif-close notif-close-btn" data-notif-id="${notif.id}" aria-label="Dismiss ${kindLabel(notif.kind)} notification">×</button>
     </div>

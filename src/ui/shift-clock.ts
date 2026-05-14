@@ -1,7 +1,9 @@
+const SHIFT_DURATION_MS = 8 * 60 * 1000
+const SHIFT_DISPLAY_MINUTES = 9 * 60 // 08:00 → 17:00
+
 export function renderShiftClock(shiftElapsed: number): string {
-  // Shift starts at 08:00 AM, each ms of elapsed = 1ms real time
   const startMinutes = 8 * 60 // 08:00 in minutes from midnight
-  const elapsedMinutes = Math.floor(shiftElapsed / 60000)
+  const elapsedMinutes = Math.floor((shiftElapsed / SHIFT_DURATION_MS) * SHIFT_DISPLAY_MINUTES)
   const totalMinutes = startMinutes + elapsedMinutes
 
   const hours24 = Math.floor(totalMinutes / 60)

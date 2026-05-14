@@ -1,4 +1,5 @@
 import { GameState, PR } from '../state'
+import { getAvatarUrl } from '../content/avatars'
 
 function teamLabel(team: string): string {
   const labels: Record<string, string> = {
@@ -95,13 +96,15 @@ export function renderPRPanel(container: HTMLElement, state: GameState): void {
 
   const initials = getInitials(currentPR.author)
   const avatarColor = nameToColor(currentPR.author)
+  const avatarUrl = getAvatarUrl(currentPR.author)
+  const avatarInner = avatarUrl ? `<img src="${avatarUrl}" alt="${initials}">` : initials
 
   container.innerHTML = `
     <div class="gh-pr-shell">
 
       <div class="gh-pr-titlebar">
         <div class="gh-pr-title-row">
-          <div class="avatar avatar-md" style="background:${avatarColor}" title="${esc(currentPR.author)}">${initials}</div>
+          <div class="avatar avatar-md" style="background:${avatarColor}" title="${esc(currentPR.author)}">${avatarInner}</div>
           <h2 class="gh-pr-title">${esc(currentPR.title)}</h2>
           <span class="gh-pr-number">#${currentPR.id.replace(/\D/g, '') || '?'}</span>
         </div>
