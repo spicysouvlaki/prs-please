@@ -1,9 +1,17 @@
 import { getState, dispatch, computePlayerRank } from './state'
 
-let lastTick = performance.now()
+let lastTick: number | null = null
+
+export function resetTick() {
+  lastTick = null
+}
 
 export function tick() {
   const now = performance.now()
+  if (lastTick === null) {
+    lastTick = now
+    return
+  }
   const delta = now - lastTick
   lastTick = now
 
@@ -108,6 +116,17 @@ export function tick() {
       body: `Yeaaah so I wanted to loop you in — we had to make some difficult decisions today around headcount. ${shortNames} are no longer with the company, effective immediately. Going forward it'd be reaaally great if your velocity reflected the, uh, increased opportunity. Calibration is this afternoon. Mmmkay?`,
       prefersUrgent: false,
     })
+
+    // Fire the player immediately if they're in the PIP zone at noon
+    const activeNpcs = s.npcs.filter(n => n.active)
+    const laidOffCount = s.npcs.filter(n => n.laidOff).length
+    const totalEntries = activeNpcs.length + 1 // +1 for player
+    const dangerCutoff = Math.max(0, totalEntries - 3 - laidOffCount)
+    const freshRank = computePlayerRank(s)
+    if (freshRank - 1 >= dangerCutoff) {
+      dispatch({ type: 'END_SHIFT', ending: 'pip-fired' })
+      return
+    }
   }
 
   // Activate Brad++ 🤖 at 2:30

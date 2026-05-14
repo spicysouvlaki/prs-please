@@ -160,6 +160,13 @@ html, body {
 
 .btn-okta:hover { background: #006ba3; }
 
+.btn-share {
+  background: #1d9bf0;
+  border-color: #1a8cd8;
+  color: #ffffff;
+}
+.btn-share:hover { background: #1a8cd8; }
+
 /* ── Brand Logo ─────────────────────────────────────────────────── */
 .brand-logo {
   display: inline-flex;

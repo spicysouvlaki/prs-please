@@ -5,7 +5,7 @@ import { ALL_NOTIFICATIONS } from './content/notifications'
 import { SEED_NPCS } from './content/npcs'
 
 export type TeamId = 'platform' | 'growth' | 'ai-foundations' | 'devx' | 'security' | 'partnerships' | 'self'
-export type EndingId = 'promoted-complicit' | 'the-catch' | 'bottom-of-stack'
+export type EndingId = 'promoted-complicit' | 'the-catch' | 'bottom-of-stack' | 'pip-fired'
 
 export type Document = {
   id: string
@@ -188,7 +188,7 @@ export type Action =
   | { type: 'CLOSE_SLACK' }
   | { type: 'SET_DOC_TAB'; tabId: string }
   | { type: 'DISMISS_NOTIFICATION'; id: string }
-  | { type: 'END_SHIFT' }
+  | { type: 'END_SHIFT'; ending?: EndingId }
   | { type: 'SHOW_ATTACK_REVEAL' }
   | { type: 'RESET' }
   | { type: 'SEND_PLAYER_MESSAGE'; message: SlackMessage; reply: SlackMessage }
@@ -283,7 +283,7 @@ export function dispatch(action: Action) {
     }
     case 'END_SHIFT': {
       _state.shiftOver = true
-      _state.ending = computeEnding()
+      _state.ending = action.ending ?? computeEnding()
       break
     }
     case 'SHOW_ATTACK_REVEAL': {

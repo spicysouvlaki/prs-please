@@ -1,5 +1,5 @@
 import { initState } from './state'
-import { tick } from './tick'
+import { tick, resetTick } from './tick'
 import { render } from './render'
 import { logoMark } from './ui/logo'
 
@@ -15,6 +15,7 @@ const DUO_D = (size: number) =>
   </svg>`
 
 function startGame() {
+  resetTick()
   initState()
   render()
   setInterval(() => {

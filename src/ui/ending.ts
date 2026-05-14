@@ -9,11 +9,17 @@ type EndingData = {
 }
 
 const ENDINGS: Record<EndingId, EndingData> = {
+  'pip-fired': {
+    title: 'TERMINATED',
+    headline: 'You\'ve Been Let Go, Effective Immediately.',
+    flavor: `The noon calibration sync lasted six minutes.\n\nBill Lumbergh pulled up the dashboard. Your stack rank at 12:00 PM: bottom three. Per the Org Efficiency Review protocol, anyone in the PIP zone at the noon checkpoint is automatically flagged for immediate separation.\n\nIT revoked your system access before you got back to your desk. Your laptop was collected by a facilities coordinator. Your badge stopped working at the parking garage.\n\nYour manager sent a Slack message at 12:04 PM. You couldn't read it — your account had already been deactivated.\n\nBrad++ 🤖 will cover your review queue.`,
+    color: '#cf222e',
+  },
   'promoted-complicit': {
-    title: 'PROMOTED: COMPLICIT',
-    headline: 'Congratulations! You\'ve Been Promoted to Senior Velocity Engineer.',
-    flavor: `Your Q3 numbers were exceptional. Management noticed your throughput, your willingness to unblock cross-team dependencies, and your consistent contribution to the merge queue.\n\nWhat they didn't notice — not yet — is that you approved the chalk@5.3.1 bump. The compromised package shipped to production at 08:32 AM. By noon, it had silently exfiltrated API keys from 847 customer sessions.\n\nBut hey: your stack rank looked great for calibration.\n\nThe incident will be discovered in 72 hours. The post-mortem will note that the PR "appeared routine." Your promotion letter arrives before the breach disclosure.`,
-    color: '#1a7f37',
+    title: 'SURVIVED: COMPLICIT',
+    headline: 'You Kept Your Job. The Attack Got Through.',
+    flavor: `Your Q3 numbers were solid. Not exceptional — but above the PIP threshold. Management noticed your throughput and your willingness to unblock cross-team dependencies.\n\nWhat they didn't notice — not yet — is that you approved the chalk@5.3.1 bump. The compromised package shipped to production at 08:32 AM. By noon, it had silently exfiltrated API keys from 847 customer sessions.\n\nThe incident will be discovered in 72 hours. The post-mortem will note that the PR "appeared routine." Your name is in the merge history. You kept your job.\n\nFor now.`,
+    color: '#9a6700',
   },
   'the-catch': {
     title: 'GOOD CATCH',
@@ -30,6 +36,19 @@ const ENDINGS: Record<EndingId, EndingData> = {
 }
 
 const ENDINGS_STORAGE_KEY = 'prs-please-endings'
+const GAME_URL = 'https://spicysouvlaki.github.io/prs-please/'
+
+function buildShareText(endingId: EndingId, state: GameState): string {
+  const fired = endingId === 'pip-fired'
+  const survived = endingId !== 'bottom-of-stack' && !fired
+  const foundAttack = endingId === 'the-catch'
+  return [
+    fired ? 'I got fired at noon at MegaCorp.ly' : survived ? 'I survived another day at MegaCorp.ly' : "I got PIP'd at MegaCorp.ly today",
+    foundAttack ? '✓ Found the supply chain attack' : '✗ Did not find the security issue',
+    `${state.approves} PRs approved · stack rank #${state.playerRank}`,
+    GAME_URL,
+  ].join('\n')
+}
 
 function loadCollectedEndings(): EndingId[] {
   try {
@@ -49,8 +68,18 @@ function saveEnding(id: EndingId): void {
   }
 }
 
+let _prevEndingKey = ''
+
 export function renderEnding(container: HTMLElement, state: GameState): void {
+  // Unlock the #app container so the ending screen can scroll
+  container.style.overflow = 'auto'
+  container.style.height = 'auto'
+
   const endingId = state.ending!
+  const key = `${endingId}:${state.showingAttackReveal ? 'reveal' : 'main'}`
+  if (key === _prevEndingKey) return
+  _prevEndingKey = key
+
   const ending = ENDINGS[endingId]
 
   saveEnding(endingId)
@@ -66,7 +95,7 @@ export function renderEnding(container: HTMLElement, state: GameState): void {
     return
   }
 
-  const endingBadges = (['promoted-complicit', 'the-catch', 'bottom-of-stack'] as EndingId[]).map(eid => {
+  const endingBadges = (['promoted-complicit', 'the-catch', 'bottom-of-stack', 'pip-fired'] as EndingId[]).map(eid => {
     const isUnlocked = collected.includes(eid)
     const edata = ENDINGS[eid]
     return `<span class="ending-badge ${isUnlocked ? 'ending-badge-unlocked' : 'ending-badge-locked'}" title="${edata.title}">
@@ -106,6 +135,9 @@ export function renderEnding(container: HTMLElement, state: GameState): void {
           </div>
 
           <div class="ending-actions">
+            <button id="btn-share" class="btn btn-share">
+              🔗 Share Results
+            </button>
             <button id="btn-show-attack" class="btn btn-secondary">
               🔍 Show me the attack
             </button>
@@ -125,11 +157,28 @@ export function renderEnding(container: HTMLElement, state: GameState): void {
     </div>
   `
 
+  document.getElementById('btn-share')?.addEventListener('click', () => {
+    const text = buildShareText(endingId, state)
+    const btn = document.getElementById('btn-share') as HTMLButtonElement
+    if (navigator.share) {
+      navigator.share({ text }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        if (btn) {
+          btn.textContent = '✓ Copied to clipboard!'
+          setTimeout(() => { btn.textContent = '🔗 Share Results' }, 2500)
+        }
+      }).catch(() => {})
+    }
+  })
+
   document.getElementById('btn-show-attack')?.addEventListener('click', () => {
     dispatch({ type: 'SHOW_ATTACK_REVEAL' })
+    renderEnding(container, state)
   })
 
   document.getElementById('btn-play-again')?.addEventListener('click', () => {
+    _prevEndingKey = ''
     dispatch({ type: 'RESET' })
     window.location.reload()
   })
@@ -221,6 +270,7 @@ function renderAttackReveal(
   })
 
   document.getElementById('btn-play-again-2')?.addEventListener('click', () => {
+    _prevEndingKey = ''
     dispatch({ type: 'RESET' })
     window.location.reload()
   })
